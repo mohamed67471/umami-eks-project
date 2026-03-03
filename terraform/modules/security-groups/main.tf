@@ -35,7 +35,7 @@ resource "aws_security_group" "eks_nodes_sg" {
   description = "security group for eks worker nodes"
   vpc_id      = var.vpc_id
 
-  
+
   ingress {
     description = "From Load Balancers to NodePort/Services"
     from_port   = 30000

@@ -1,15 +1,15 @@
 resource "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
-  
+
   client_id_list = [
     "sts.amazonaws.com",
   ]
-  
+
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aea1",
     "1c58a3a8518e8759bf075b76b750d4f2df264fcd"
   ]
-  
+
   tags = {
     Name    = "github-actions-oidc"
     Project = "umami-eks"
@@ -19,7 +19,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 # IAM Role for GitHub Actions 
 resource "aws_iam_role" "github_actions_eks" {
   name = "github-actions-eks-deploy-role"
-  
+
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -40,7 +40,7 @@ resource "aws_iam_role" "github_actions_eks" {
       }
     ]
   })
-  
+
   tags = {
     Name    = "github-actions-eks-role"
     Project = "umami-eks"
@@ -51,7 +51,7 @@ resource "aws_iam_role" "github_actions_eks" {
 resource "aws_iam_role_policy" "github_actions_terraform" {
   name = "github-actions-terraform-policy"
   role = aws_iam_role.github_actions_eks.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -72,21 +72,21 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
       {
         Effect = "Allow"
         Action = [
-          
+
           "eks:*",
-          
+
           "ec2:*",
-          
+
           "iam:*",
-          
+
           "rds:*",
-          
+
           "route53:*",
-          
+
           "logs:*",
-          
+
           "elasticloadbalancing:*",
-          
+
           "autoscaling:*"
         ]
         Resource = "*"
@@ -99,7 +99,7 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
 resource "aws_iam_role_policy" "github_actions_ecr" {
   name = "github-actions-ecr-policy"
   role = aws_iam_role.github_actions_eks.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [

@@ -98,7 +98,7 @@ module "cert_manager" {
 module "argocd" {
   source = "./modules/argocd"
 
- 
+
   namespace      = "argocd"
   domain_name    = "mohamed-uptime.com"
   eks_cluster_id = module.eks.cluster_id

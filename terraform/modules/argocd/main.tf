@@ -19,10 +19,10 @@ resource "kubernetes_ingress_v1" "argocd_server" {
     name      = "argocd-server"
     namespace = var.namespace
     annotations = {
-      "cert-manager.io/cluster-issuer"                                                      = "letsencrypt-prod"
-      "nginx.ingress.kubernetes.io/backend-protocol"                                        = "HTTP"
-      "nginx.ingress.kubernetes.io/ssl-redirect"                                            = "true"
-      "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled"      = "true"  
+      "cert-manager.io/cluster-issuer"                                                 = "letsencrypt-prod"
+      "nginx.ingress.kubernetes.io/backend-protocol"                                   = "HTTP"
+      "nginx.ingress.kubernetes.io/ssl-redirect"                                       = "true"
+      "service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled" = "true"
     }
   }
 
