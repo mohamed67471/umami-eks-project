@@ -1,0 +1,51 @@
+# Umami Configuration
+image:
+  repository: ghcr.io/umami-software/umami
+  tag: postgresql-latest
+  pullPolicy: IfNotPresent
+
+# Database Configuration (will use RDS)
+database:
+ database:
+  type: postgresql
+  existingSecret: umami-db-secret
+
+# Ingress Configuration for HTTPS
+ingress:
+  enabled: true
+  className: alb
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/ssl-policy: ELBSecurityPolicy-TLS13-1-2-2021-06
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
+    alb.ingress.kubernetes.io/certificate-arn: ""  # Will be filled by Terraform
+  hosts:
+    - host: umami.mohamed-uptime.com
+      paths:
+        - path: /
+          pathType: Prefix
+
+# Resource limits
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "250m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Liveness and readiness probes
+livenessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 30
+  periodSeconds: 10
+
+readinessProbe:
+  httpGet:
+    path: /api/health
+    port: 3000
+  initialDelaySeconds: 5
+  periodSeconds: 5

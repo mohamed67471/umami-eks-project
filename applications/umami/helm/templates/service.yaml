@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service 
+metadata:
+  name: umami 
+  namespace: umami
+  labels: 
+    helm.sh/chart: umami-2.0.0
+    app.kubernetes.io/name: umami
+    app.kubernetes.io/instance: umami-release
+    app.kubernetes.io/version: "2.0.0"
+    app.kubernetes.io/managed-by: Helm
+spec:
+  type: ClusterIP
+  ports:
+    - protocol: TCP 
+      port: 3000
+      targetPort: 3000
+      name: http 
+  selector:
+    app.kubernetes.io/name: umami
+    app.kubernetes.io/instance: umami-release
+

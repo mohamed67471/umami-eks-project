@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: umami
+  namespace: umami
+  labels:
+    app.kubernetes.io/name: umami
+    app.kubernetes.io/instance: umami-release
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: umami
+      app.kubernetes.io/instance: umami-release
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: umami
+        app.kubernetes.io/instance: umami-release
+    spec:
+      containers:
+        - name: umami
+          image: ghcr.io/umami-software/umami:postgresql-latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            # Pull DATABASE_URL from the Kubernetes secret created by Terraform
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: umami-db-secret
+                  key: DATABASE_URL
+            - name: APP_SECRET
+              value: "change-me-to-32-characters-1234567890"
+            - name: DATABASE_TYPE
+              value: "postgresql"
+            - name: HASH_SALT
+              value: "change-me-too"
+            - name: NODE_EXTRA_CA_CERTS
+              value: /etc/ssl/rds-ca/rds-ca.pem
+          volumeMounts:
+            - name: rds-ca
+              mountPath: /etc/ssl/rds-ca
+              readOnly: true
+          livenessProbe:
+            httpGet:
+              path: /api/heartbeat
+              port: 3000
+            initialDelaySeconds: 180
+            periodSeconds: 45
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/heartbeat
+              port: 3000
+            initialDelaySeconds: 150
+            periodSeconds: 30
+            timeoutSeconds: 3
+            failureThreshold: 3
+      volumes:
+        - name: rds-ca
+          configMap:
+            name: rds-ca

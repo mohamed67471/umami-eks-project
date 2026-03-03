@@ -1,0 +1,25 @@
+server:
+  
+  extraArgs:
+    - --insecure
+  
+  service:
+    type: ClusterIP
+  
+  ingress:
+    enabled: false
+    ingressClassName: "nginx"
+    annotations:
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/backend-protocol: "HTTP"
+      cert-manager.io/cluster-issuer: letsencrypt-prod
+    hosts:
+      - argocd.mohamed-uptime.com
+    tls:
+      - secretName: argocd-server-tls 
+        hosts:
+        - argocd.mohamed-uptime.com
+
+configs:
+  params:
+    server.insecure: true
