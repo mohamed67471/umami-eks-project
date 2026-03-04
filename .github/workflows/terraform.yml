@@ -177,6 +177,7 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          timeout-minutes: 45 
 
       - name: Save Outputs
         if: success()

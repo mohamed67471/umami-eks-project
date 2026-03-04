@@ -96,7 +96,7 @@ module "cert_manager" {
 }
 
 module "argocd" {
-  source = "./modules/argocd"
+ source = "./modules/argocd"
 
 
   namespace      = "argocd"
