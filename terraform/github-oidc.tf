@@ -123,6 +123,25 @@ resource "aws_iam_role_policy" "github_actions_ecr" {
   })
 }
 
+# Grant GitHub Actions role admin access to EKS cluster
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = var.cluster_name
+  principal_arn = aws_iam_role.github_actions_eks.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions_admin" {
+  cluster_name  = var.cluster_name
+  principal_arn = aws_iam_role.github_actions_eks.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.github_actions]
+}
+
 # Output the role ARN for GitHub Actions
 output "github_actions_role_arn" {
   description = "ARN of the GitHub Actions IAM role for EKS deployment"
