@@ -128,6 +128,8 @@ resource "aws_eks_access_entry" "github_actions" {
   cluster_name  = var.cluster_name
   principal_arn = aws_iam_role.github_actions_eks.arn
   type          = "STANDARD"
+
+  depends_on = [module.eks]
 }
 
 resource "aws_eks_access_policy_association" "github_actions_admin" {

@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Website - Umami Analytics</title>
+    
+    <!-- Umami Analytics Script -->
+    <script async defer 
+        data-website-id="01125b1c-676c-4d83-b1c4-89e9608a65f1"
+        src="https://umami.mohamed-uptime.com/script.js">
+    </script>
+    
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 { color: #333; }
+        button {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #0056b3; }
+        .stats { 
+            background: #f4f4f4; 
+            padding: 20px; 
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Test Website for Umami Analytics</h1>
+    
+    <div class="stats">
+        <h2>Welcome!</h2>
+        <p>This is a test website to demonstrate Umami analytics tracking.</p>
+        <p>Click the buttons below to generate test events:</p>
+    </div>
+    
+    <button onclick="trackEvent('button_click', {button: 'primary'})">
+        Primary Action
+    </button>
+    
+    <button onclick="trackEvent('button_click', {button: 'secondary'})">
+        Secondary Action
+    </button>
+    
+    <button onclick="window.location.href='/page2.html'">
+        Go to Page 2
+    </button>
+    
+    <script>
+        function trackEvent(name, data) {
+            if (window.umami) {
+                window.umami.track(name, data);
+                alert('Event tracked: ' + name);
+            }
+        }
+    </script>
+</body>
+</html>

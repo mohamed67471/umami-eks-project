@@ -44,7 +44,7 @@ resource "aws_eks_cluster" "main" {
 
 # eks nodes 
 resource "aws_eks_node_group" "umami_node_group" {
-  cluster_name    = var.cluster_name
+  cluster_name    = aws_eks_cluster.main.name
   node_group_name = var.eks_node_group_name
   node_role_arn   = var.node_role_arn
   subnet_ids      = var.subnet_ids
