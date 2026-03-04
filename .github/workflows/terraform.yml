@@ -171,13 +171,23 @@ jobs:
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
+      - name: Terraform Apply - EKS Access First
+        run: |
+          terraform apply -auto-approve \
+            -target=module.eks.aws_eks_cluster.main \
+            -target=aws_eks_access_entry.github_actions \
+            -target=aws_eks_access_policy_association.github_actions_admin
+        working-directory: ${{ env.TERRAFORM_DIR }}
+        env:
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+
       - name: Terraform Apply
         id: apply
+        timeout-minutes: 45
         run: terraform apply -auto-approve
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
-          timeout-minutes: 45 
 
       - name: Save Outputs
         if: success()
