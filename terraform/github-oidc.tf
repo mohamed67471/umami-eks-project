@@ -144,6 +144,38 @@ resource "aws_eks_access_policy_association" "github_actions_admin" {
   depends_on = [aws_eks_access_entry.github_actions]
 }
 
+resource "aws_iam_role_policy" "github_actions_kms" {
+  name = "github-actions-kms-policy"
+  role = aws_iam_role.github_actions_eks.id
+  
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "kms:CreateKey",
+          "kms:CreateAlias",
+          "kms:DeleteAlias",
+          "kms:DescribeKey",
+          "kms:GetKeyPolicy",
+          "kms:GetKeyRotationStatus",
+          "kms:ListAliases",
+          "kms:ListResourceTags",
+          "kms:PutKeyPolicy",
+          "kms:TagResource",
+          "kms:UntagResource",
+          "kms:UpdateAlias",
+          "kms:EnableKeyRotation",
+          "kms:DisableKeyRotation",
+          "kms:ScheduleKeyDeletion"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Output the role ARN for GitHub Actions
 output "github_actions_role_arn" {
   description = "ARN of the GitHub Actions IAM role for EKS deployment"
