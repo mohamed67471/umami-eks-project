@@ -1,0 +1,98 @@
+name: Deploy Umami
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'applications/umami/**'
+      - 'argocd/**'
+      - '.github/workflows/deploy-umami.yml'
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+  security-events: write
+
+env:
+  AWS_REGION: 'us-east-1'
+  CLUSTER_NAME: 'umami-cluster'
+  UMAMI_IMAGE: 'ghcr.io/umami-software/umami:postgresql-latest'
+
+jobs:
+  security-scan:
+    name: Scan Docker Image
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pull Umami image
+        run: docker pull ${{ env.UMAMI_IMAGE }}
+
+      - name: Run Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.UMAMI_IMAGE }}
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v4
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Trivy summary
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.UMAMI_IMAGE }}
+          format: 'table'
+          severity: 'CRITICAL,HIGH'
+
+  deploy:
+    name: Deploy to EKS
+    runs-on: ubuntu-latest
+    needs: security-scan
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Update kubeconfig
+        run: |
+          aws eks update-kubeconfig --name ${{ env.CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Apply base resources
+        run: |
+          kubectl apply -f kubernetes/cluster-issuer.yaml
+          kubectl apply -f kubernetes/rds-ca-configmap.yaml
+
+      - name: Apply ArgoCD application
+        run: |
+          kubectl apply -f argocd/umami-application.yaml
+
+      - name: Wait for deployment
+        run: |
+          kubectl wait --for=condition=available --timeout=300s deployment/umami -n umami || true
+
+      - name: Check status
+        run: |
+          kubectl get pods -n umami
+          kubectl get ingress -n umami
+          kubectl get certificate -n umami
+
+      - name: Deployment summary
+        if: success()
+        run: |
+          echo "Deployment complete" >> $GITHUB_STEP_SUMMARY
+          echo "Namespace: umami" >> $GITHUB_STEP_SUMMARY
+          echo "Image: ${{ env.UMAMI_IMAGE }}" >> $GITHUB_STEP_SUMMARY
