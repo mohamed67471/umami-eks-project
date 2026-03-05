@@ -1,27 +1,4 @@
 
-resource "kubernetes_namespace" "umami" {
-  metadata {
-    name = "umami"
-  }
-}
-
-
-resource "kubernetes_secret_v1" "umami_db" {
-  metadata {
-    name      = "umami-db-secret"
-    namespace = kubernetes_namespace.umami.metadata[0].name
-  }
-
-  data = {
-    DATABASE_URL = "postgresql://umami:${module.rds.db_password}@${module.rds.rds_address}:${module.rds.rds_port}/${module.rds.rds_db_name}?sslmode=require"
-  }
-
-  type = "Opaque"
-
-  depends_on = [
-    module.rds
-  ]
-}
 module "vpc" {
   source = "./modules/vpc"
 
