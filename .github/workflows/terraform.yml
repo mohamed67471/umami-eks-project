@@ -7,7 +7,6 @@ on:
     paths:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
-
   pull_request:
     branches:
       - main
@@ -20,12 +19,15 @@ permissions:
   pull-requests: write
   security-events: write
 
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   TF_VERSION: '1.13.1'
   AWS_REGION: 'us-east-1'
   TERRAFORM_DIR: './terraform'
 
-# job 1 : validate and lint 
 jobs:
   validate:
     name: Validate Terraform
@@ -38,38 +40,40 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Terraform fmt
+      - name: Format check
         id: fmt
-        run: terraform fmt -check
+        run: terraform fmt -check -recursive
         working-directory: ${{ env.TERRAFORM_DIR }}
         continue-on-error: true
 
-      - name: Terraform Init
+      - name: Init
         id: init
-        run: terraform init -backend=false  
+        run: terraform init -backend=false
         working-directory: ${{ env.TERRAFORM_DIR }}
 
-      - name: Terraform Validate
+      - name: Validate
         id: validate
         run: terraform validate -no-color
         working-directory: ${{ env.TERRAFORM_DIR }}
 
-      
-      - name: Comment Validation Results on PR
+      - name: Comment on PR
         if: github.event_name == 'pull_request'
         uses: actions/github-script@v7
         with:
           script: |
+            const output = `Format: \`${{ steps.fmt.outcome }}\`
+            Init: \`${{ steps.init.outcome }}\`
+            Validate: \`${{ steps.validate.outcome }}\``;
+            
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "Terraform checks completed"
+              body: output
             })
 
-# Job 2: Security Scan with Checkov
   security-scan:
-    name: Security Scan (Checkov)
+    name: Security Scan
     runs-on: ubuntu-latest
     needs: validate
     
@@ -86,15 +90,14 @@ jobs:
           output_file_path: reports/results.sarif
           soft_fail: true
           
-      - name: Upload Checkov results
+      - name: Upload results
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: reports/results.sarif
 
-# Job 3: Terraform Plan (on PR)
   plan:
-    name: Terraform Plan
+    name: Plan
     runs-on: ubuntu-latest
     needs: [validate, security-scan]
     if: github.event_name == 'pull_request'
@@ -106,19 +109,19 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Configure AWS Credentials (OIDC)
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init
+      - name: Init
         run: terraform init
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-      - name: Terraform Plan
+      - name: Plan
         id: plan
         run: terraform plan -no-color -out=tfplan
         working-directory: ${{ env.TERRAFORM_DIR }}
@@ -126,13 +129,14 @@ jobs:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
         continue-on-error: true
 
-      - name: Save Plan
+      - name: Save plan
         uses: actions/upload-artifact@v4
         with:
           name: terraform-plan
           path: ${{ env.TERRAFORM_DIR }}/tfplan
+          retention-days: 5
 
-      - name: Comment Plan on PR
+      - name: Comment plan
         uses: actions/github-script@v7
         with:
           script: |
@@ -140,17 +144,17 @@ jobs:
               issue_number: context.issue.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: "Terraform plan finished"
+              body: "Plan complete. Check Actions tab for details."
             })
 
-  # Job 4: Terraform Apply (on merge to main)
   apply:
-    name: Terraform Apply
+    name: Apply
     runs-on: ubuntu-latest
     needs: [validate, security-scan]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment:
       name: production
+    timeout-minutes: 60
     
     steps:
       - uses: actions/checkout@v4
@@ -159,52 +163,76 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
-      - name: Configure AWS Credentials (OIDC)
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
-      - name: Terraform Init
+      - name: Init
         run: terraform init
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-      - name: Terraform Apply - EKS Access First
+      - name: Check cluster exists
+        id: check_cluster
+        run: |
+          if aws eks describe-cluster --name umami-cluster --region us-east-1 2>/dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+        continue-on-error: true
+
+      - name: Apply infrastructure
+        if: steps.check_cluster.outputs.exists == 'false'
         run: |
           terraform apply -auto-approve \
-            -target=module.eks.aws_eks_cluster.main \
-            -target=aws_eks_access_entry.github_actions \
-            -target=aws_eks_access_policy_association.github_actions_admin
+            -target=module.vpc \
+            -target=module.security_groups \
+            -target=module.iam \
+            -target=module.eks \
+            -target=module.rds
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-      - name: Terraform Apply
+      - name: Wait for cluster
+        if: steps.check_cluster.outputs.exists == 'false'
+        run: |
+          aws eks wait cluster-active --name umami-cluster --region us-east-1
+          sleep 30
+
+      - name: Apply all
         id: apply
-        timeout-minutes: 45
         run: terraform apply -auto-approve
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-      - name: Save Outputs
+      - name: Save outputs
         if: success()
-        run: |
-          echo "Saving Terraform outputs..."
-          terraform output -json > outputs.json
+        run: terraform output -json > outputs.json
         working-directory: ${{ env.TERRAFORM_DIR }}
 
-      - name: Upload Outputs
+      - name: Upload outputs
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: terraform-outputs
           path: ${{ env.TERRAFORM_DIR }}/outputs.json
+          retention-days: 30
 
-      - name: Notify on Failure
+      - name: Summary
+        if: success()
+        run: |
+          echo "Deployment complete" >> $GITHUB_STEP_SUMMARY
+          echo "Cluster: umami-cluster" >> $GITHUB_STEP_SUMMARY
+          echo "Region: us-east-1" >> $GITHUB_STEP_SUMMARY
+
+      - name: Failed
         if: failure()
         run: |
-          echo "Terraform apply failed"
+          echo "Deployment failed"
           exit 1
