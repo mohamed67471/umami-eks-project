@@ -75,3 +75,9 @@ variable "eks_node_group_name" {
   default     = "umami-cluster-node-group"
 
 }
+
+variable "admin_cidr_list" {
+  description = "Admin IP CIDR blocks"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}

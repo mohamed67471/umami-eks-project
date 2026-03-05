@@ -27,6 +27,7 @@ module "eks" {
   subnet_ids       = module.vpc.private_subnet_ids
   cluster_sg_ids   = [module.security_groups.eks_cluster_sg_id]
   eks_nodes_sg_id  = module.security_groups.eks_nodes_sg_id
+  admin_cidr_list  = var.admin_cidr_list
 }
 
 module "iam" {

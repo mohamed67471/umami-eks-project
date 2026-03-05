@@ -47,3 +47,8 @@ variable "cluster_version" {
 }
 
 
+variable "admin_cidr_list" {
+  description = "CIDR blocks allowed to access EKS API"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]
+}
