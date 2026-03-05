@@ -5,10 +5,10 @@ data "aws_caller_identity" "current" {}
 locals {
 
   is_assumed_role = can(regex("assumed-role", data.aws_caller_identity.current.arn))
-  
+
   principal_arn = local.is_assumed_role ? (
     "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/${split("/", data.aws_caller_identity.current.arn)[1]}"
-  ) : (
+    ) : (
     data.aws_caller_identity.current.arn
   )
 }
