@@ -1,4 +1,4 @@
-ame: Deploy Umami
+name: Deploy Umami
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'applications/umami/**'
-      - 'applications/argocd/**'  
+      - 'applications/argocd/**'
       - '.github/workflows/deploy-umami.yml'
   workflow_dispatch:
 
@@ -78,7 +78,7 @@ jobs:
 
       - name: Apply ArgoCD application
         run: |
-          kubectl apply -f applications/argocd/umami-application.yaml  
+          kubectl apply -f applications/argocd/umami-application.yaml
 
       - name: Wait for deployment
         run: |
