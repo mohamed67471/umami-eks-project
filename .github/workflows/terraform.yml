@@ -175,6 +175,7 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
 
       - name: Check cluster exists
         id: check_cluster
@@ -198,6 +199,7 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
 
       - name: Wait for cluster
         if: steps.check_cluster.outputs.exists == 'false'
@@ -211,6 +213,7 @@ jobs:
         working-directory: ${{ env.TERRAFORM_DIR }}
         env:
           TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+          TF_VAR_grafana_admin_password: ${{ secrets.GRAFANA_ADMIN_PASSWORD }}
 
       - name: Save outputs
         if: success()
