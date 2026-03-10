@@ -28,13 +28,13 @@ output "external_dns_policy_arn" {
 
 
 
-# ADD THIS - External DNS Role
+
 output "external_dns_role_arn" {
   description = "ARN of the External DNS IAM role"
   value       = aws_iam_role.external_dns.arn
 }
 
-# FIX THIS - Add .arn
+
 output "cert_manager_role_arn" {
   description = "ARN of the cert-manager IAM role"
   value       = aws_iam_role.cert_manager.arn

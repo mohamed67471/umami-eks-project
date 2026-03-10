@@ -67,13 +67,7 @@ resource "aws_iam_role_policy_attachment" "ecr_read_only" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# -------------------------------------------------------------------
-# OIDC provider from the cluster (IRSA)
-# -------------------------------------------------------------------
-#data "aws_iam_openid_connect_provider" "eks" {
-#count = try(var.oidc_issuer, "") != "" ? 1 : 0
-# url   = var.oidc_issuer
-#}
+
 
 # -------------------------------------------------------------------
 # ALB Controller IAM Role (OIDC)
@@ -116,7 +110,7 @@ resource "aws_iam_role" "external_dns" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = var.oidc_provider_arn # Change this
+          Federated = var.oidc_provider_arn 
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {
@@ -140,7 +134,7 @@ resource "aws_iam_role_policy_attachment" "external_dns" {
 }
 
 # -------------------------------------------------------------------
-# IAM Policies (NO count - these are always created)
+# IAM Policies 
 # -------------------------------------------------------------------
 resource "aws_iam_policy" "alb_controller" {
   name        = "${var.name_prefix}-alb-controller-policy"
@@ -166,7 +160,7 @@ resource "aws_iam_role" "cert_manager" {
       {
         Effect = "Allow"
         Principal = {
-          Federated = var.oidc_provider_arn # Change this
+          Federated = var.oidc_provider_arn 
         }
         Action = "sts:AssumeRoleWithWebIdentity"
         Condition = {

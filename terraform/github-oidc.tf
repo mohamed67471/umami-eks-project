@@ -58,7 +58,7 @@ resource "aws_iam_role_policy" "github_actions_terraform" {
       {
         Effect = "Allow"
         Action = [
-          # S3 for Terraform state
+          
           "s3:ListBucket",
           "s3:GetObject",
           "s3:PutObject",
@@ -147,7 +147,7 @@ resource "aws_eks_access_policy_association" "github_actions_admin" {
 resource "aws_iam_role_policy" "github_actions_kms" {
   name = "github-actions-kms-policy"
   role = aws_iam_role.github_actions_eks.id
-  
+
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [

@@ -54,7 +54,7 @@ resource "aws_eks_cluster" "main" {
   }
 
   access_config {
-    authentication_mode = "API_AND_CONFIG_MAP"
+    authentication_mode = "API"
   }
 
   encryption_config {
@@ -112,3 +112,5 @@ resource "aws_iam_openid_connect_provider" "eks" {
     data.tls_certificate.eks.certificates[0].sha1_fingerprint,
   ]
 }
+
+

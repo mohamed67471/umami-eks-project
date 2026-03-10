@@ -81,3 +81,18 @@ module "argocd" {
   domain_name    = "mohamed-uptime.com"
   eks_cluster_id = module.eks.cluster_id
 }
+
+module "monitoring" {
+  source = "./modules/monitoring"
+
+  namespace              = "monitoring"
+  domain_name            = var.domain_name
+  grafana_admin_password = var.grafana_admin_password
+  eks_cluster_id         = module.eks.cluster_id
+
+  depends_on = [
+    module.eks,
+    module.nginx_ingress,
+    module.cert_manager
+  ]
+}

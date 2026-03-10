@@ -73,7 +73,7 @@ resource "aws_route_table_association" "public" {
   route_table_id = aws_route_table.public.id
 }
 
-# NAT Gateway (SINGLE)
+# NAT Gateway (single)
 
 resource "aws_eip" "nat" {
   domain = "vpc"
@@ -97,7 +97,7 @@ resource "aws_nat_gateway" "main" {
 }
 
 
-# Private Route Table (ONE)
+# Private Route Table (one)
 
 resource "aws_route_table" "private" {
   vpc_id = aws_vpc.main.id

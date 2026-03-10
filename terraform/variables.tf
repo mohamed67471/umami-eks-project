@@ -52,3 +52,9 @@ variable "admin_cidr_list" {
   type        = list(string)
   default     = ["0.0.0.0/0"]
 }
+
+variable "grafana_admin_password" {
+  description = "Grafana admin password"
+  type        = string
+  sensitive   = true
+}
