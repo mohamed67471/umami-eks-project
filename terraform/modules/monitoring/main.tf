@@ -11,11 +11,11 @@ resource "helm_release" "prometheus" {
 
   values = [
     yamlencode({
-     
+
       prometheus = {
         prometheusSpec = {
           retention = "7d"
-          
+
         }
       }
 
@@ -39,7 +39,7 @@ resource "helm_release" "prometheus" {
         }
 
         persistence = {
-          enabled = false 
+          enabled = false
         }
 
         # Pre-configure dashboards

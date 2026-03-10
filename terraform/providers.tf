@@ -74,7 +74,7 @@ provider "helm" {
 }
 resource "kubernetes_namespace" "umami" {
   metadata {
-    name = "umami"  
+    name = "umami"
   }
 }
 
