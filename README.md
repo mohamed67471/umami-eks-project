@@ -2,9 +2,8 @@
 
 A production-grade Kubernetes deployment of Umami Analytics on AWS EKS, demonstrating cloud-native best practices, GitOps workflows, and infrastructure automation.
 
-**Application**: [https://umami.mohamed-uptime.com](https://umami.mohamed-uptime.com)
 
----
+
 
 ## About the Application
 
