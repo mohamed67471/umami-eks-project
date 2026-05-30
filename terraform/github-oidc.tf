@@ -12,7 +12,7 @@ resource "aws_iam_openid_connect_provider" "github" {
 
   tags = {
     Name    = "github-actions-oidc"
-    Project = "umami-eks"
+    Project = "cloud-analytics-platform"
   }
 }
 
@@ -34,7 +34,7 @@ resource "aws_iam_role" "github_actions_eks" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:mohamed67471/umami-eks-project:*"
+            "token.actions.githubusercontent.com:sub" = "repo:mohamed67471/cloud-analytics-platform:*"
           }
         }
       }
@@ -43,7 +43,7 @@ resource "aws_iam_role" "github_actions_eks" {
 
   tags = {
     Name    = "github-actions-eks-role"
-    Project = "umami-eks"
+    Project = "cloud-analytics-platform"
   }
 }
 
