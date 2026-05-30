@@ -39,3 +39,8 @@ output "cert_manager_role_arn" {
   description = "ARN of the cert-manager IAM role"
   value       = aws_iam_role.cert_manager.arn
 }
+
+output "external_secrets_role_arn" {
+  description = "ARN of the External Secrets Operator IAM role"
+  value       = aws_iam_role.external_secrets.arn
+}
