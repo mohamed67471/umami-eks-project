@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: umami
-          image: ghcr.io/mohamed67471/umami:latest
+          image: ghcr.io/mohamed67471/umami:7785186
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
