@@ -18,9 +18,23 @@ spec:
         app.kubernetes.io/name: umami
         app.kubernetes.io/instance: umami-release
     spec:
+      initContainers:
+        - name: migrate
+          image: ghcr.io/mohamed67471/umami:latest
+          command: ["npx", "prisma", "migrate", "deploy", "--schema", "./prisma/schema.prisma"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: umami-db-secret
+                  key: DATABASE_URL
       containers:
         - name: umami
+<<<<<<< HEAD
           image: ghcr.io/mohamed67471/umami:95342a3
+=======
+          image: ghcr.io/mohamed67471/umami:latest
+>>>>>>> 127e84b (feat: automate db migrations via init container)
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
