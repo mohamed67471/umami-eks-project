@@ -30,11 +30,7 @@ spec:
                   key: DATABASE_URL
       containers:
         - name: umami
-<<<<<<< HEAD
-          image: ghcr.io/mohamed67471/umami:95342a3
-=======
           image: ghcr.io/mohamed67471/umami:latest
->>>>>>> 127e84b (feat: automate db migrations via init container)
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
