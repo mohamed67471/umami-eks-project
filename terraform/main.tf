@@ -54,9 +54,9 @@ module "helm" {
   domain_name = var.domain_name
 
   # cert-manager
-  cert_manager_chart_version        = "v1.13.0"
-  cert_manager_iam_role_arn         = module.iam.cert_manager_role_arn
-  iam_role_dependency               = module.iam
+  cert_manager_chart_version = "v1.13.0"
+  cert_manager_iam_role_arn  = module.iam.cert_manager_role_arn
+  iam_role_dependency        = module.iam
 
   # external-dns
   external_dns_iam_role_arn = module.iam.external_dns_role_arn
