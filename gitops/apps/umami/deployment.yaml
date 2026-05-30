@@ -20,7 +20,7 @@ spec:
     spec:
       initContainers:
         - name: migrate
-          image: ghcr.io/mohamed67471/umami:latest
+          image: ghcr.io/mohamed67471/umami:7c2230c
           command: ["npx", "prisma", "migrate", "deploy", "--schema", "./prisma/schema.prisma"]
           env:
             - name: DATABASE_URL
@@ -30,7 +30,7 @@ spec:
                   key: DATABASE_URL
       containers:
         - name: umami
-          image: ghcr.io/mohamed67471/umami:latest
+          image: ghcr.io/mohamed67471/umami:7c2230c
           imagePullPolicy: IfNotPresent
           ports:
             - name: http
