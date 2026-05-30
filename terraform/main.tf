@@ -1,4 +1,3 @@
-
 module "vpc" {
   source = "./modules/vpc"
 
@@ -47,54 +46,31 @@ module "rds" {
   rds_sg_id          = module.security_groups.rds_sg_id
 }
 
-module "external_dns" {
-  source = "./modules/external-dns"
+module "helm" {
+  source = "./modules/helm"
 
-  cluster_name = var.cluster_name
-  iam_role_arn = module.iam.external_dns_role_arn
-  domain_name  = var.domain_name
-  region       = var.aws_region
+  # shared
+  region      = var.aws_region
+  domain_name = var.domain_name
 
-  depends_on = [module.eks]
-}
+  # cert-manager
+  cert_manager_chart_version        = "v1.13.0"
+  cert_manager_iam_role_arn         = module.iam.cert_manager_role_arn
+  iam_role_dependency               = module.iam
 
+  # external-dns
+  external_dns_iam_role_arn = module.iam.external_dns_role_arn
 
-module "nginx_ingress" {
-  source = "./modules/nginx-ingress"
-
-  eks_cluster_id = module.eks.cluster_id
-}
-
-module "cert_manager" {
-  source = "./modules/cert-manager"
-
-
-  iam_role_arn = "arn:aws:iam::715432480679:role/umami-eks-cert-manager-role"
-  depends_on   = [module.eks]
-}
-
-module "argocd" {
-  source = "./modules/argocd"
-
-
-  namespace      = "argocd"
-  domain_name    = "mohamed-uptime.com"
-  eks_cluster_id = module.eks.cluster_id
-}
-
-module "monitoring" {
-  source = "./modules/monitoring"
-
-  namespace              = "monitoring"
-  domain_name            = var.domain_name
+  # monitoring
   grafana_admin_password = var.grafana_admin_password
   eks_cluster_id         = module.eks.cluster_id
 
+  # argocd
+  argocd_chart_version = "5.51.0"
+  #ESO
+  external_secrets_role_arn = module.iam.external_secrets_role_arn
   depends_on = [
     module.eks,
-    module.nginx_ingress,
-    module.cert_manager
+    module.iam
   ]
 }
-
-#
