@@ -42,11 +42,13 @@ Umami is a simple, fast, privacy-focused alternative to Google Analytics. It pro
 
 **Network Layer**: VPC with public/private subnets across two availability zones (us-east-1a, us-east-1b), Internet Gateway, NAT Gateway, and Network Load Balancer for high availability.
 
-**Compute Layer**: EKS cluster running Kubernetes 1.28 with two t3.medium worker nodes in private subnets for security.
+**Compute Layer**: EKS cluster running Kubernetes 1.29 with two t3.medium worker nodes in private subnets for security.
 
-**Data Layer**: RDS PostgreSQL 15 Multi-AZ deployment with automated backups and encryption.
+**Data Layer**: RDS PostgreSQL 15 with encryption at rest via AWS KMS.
 
 **Application Layer**: NGINX Ingress Controller for routing, Umami Analytics application, and supporting platform services.
+
+**Secrets Layer**: AWS Secrets Manager with External Secrets Operator syncing secrets into Kubernetes automatically.
 
 **Monitoring Layer**: Prometheus for metrics collection and Grafana for visualization.
 
@@ -54,16 +56,20 @@ Umami is a simple, fast, privacy-focused alternative to Google Analytics. It pro
 
 ## Technology Stack
 
-- **Cloud**: AWS (EKS, RDS, VPC, Route 53, NLB)
-- **Infrastructure as Code**: Terraform
-- **Container Orchestration**: Kubernetes 1.28
-- **GitOps**: ArgoCD
-- **CI/CD**: GitHub Actions
-- **Ingress**: NGINX Ingress Controller
-- **SSL/TLS**: cert-manager with Let's Encrypt
-- **DNS Automation**: ExternalDNS
-- **Monitoring**: Prometheus + Grafana
-- **Database**: PostgreSQL 15 (RDS)
+
+| Category | Technology |
+|----------|-----------|
+| Cloud | AWS (EKS, RDS, VPC, Route 53, Secrets Manager) |
+| Infrastructure as Code | Terraform |
+| Container Orchestration | Kubernetes 1.29 |
+| GitOps | ArgoCD |
+| CI/CD | GitHub Actions + GHCR |
+| Ingress | NGINX Ingress Controller |
+| SSL/TLS | cert-manager + Let's Encrypt |
+| DNS Automation | ExternalDNS |
+| Secret Management | AWS Secrets Manager + External Secrets Operator |
+| Monitoring | Prometheus + Grafana |
+| Database | PostgreSQL 15 (RDS) |
 
 ---
 
@@ -86,7 +92,42 @@ cert-manager automates SSL/TLS certificate issuance and renewal using Let's Encr
 - Disaster recovery: DNS updates on failover
 - GitOps-friendly: DNS managed through code
 
+## Secret Management
 
+Secrets are managed using a GitOps-friendly workflow with External Secrets Operator (ESO). No sensitive values are stored in Git repositories, Kubernetes manifests, or Terraform state files.
+
+### Architecture
+
+```text
+AWS Secrets Manager
+        │
+        ▼
+External Secrets Operator (ESO)
+        │
+        ▼
+Kubernetes Secrets
+(umami-db-secret, umami-app-secret)
+        │
+        ▼
+Umami Deployment
+```
+
+### Implementation
+
+- Application secrets (`DATABASE_URL`, `APP_SECRET`, and `HASH_SALT`) are stored securely in AWS Secrets Manager.
+- External Secrets Operator automatically synchronizes these values into Kubernetes Secrets.
+- Secrets are refreshed every hour to ensure changes are propagated automatically.
+- ESO authenticates to AWS using IAM Roles for Service Accounts (IRSA) and OIDC, eliminating the need for long-lived AWS credentials.
+- A `ClusterSecretStore` provides centralized access to AWS Secrets Manager across all Kubernetes namespaces.
+
+### Benefits
+
+- No secrets stored in Git repositories.
+- No secrets exposed in Terraform state files.
+- Centralized secret management in AWS Secrets Manager.
+- Automatic secret synchronization and rotation support.
+- Secure authentication using AWS IAM and OIDC.
+- GitOps-compatible
 ## GitOps with ArgoCD
 
 <img width="940" height="485" alt="image" src="https://github.com/user-attachments/assets/743f1391-37a3-41c8-ad3f-02294964f226" /><img width="940" height="469" alt="image" src="https://github.com/user-attachments/assets/0a01e4c7-1624-4438-beb9-efd4711f8af0" />
@@ -96,7 +137,7 @@ cert-manager automates SSL/TLS certificate issuance and renewal using Let's Encr
 ArgoCD implements GitOps continuous deployment, treating Git as the single source of truth for application state.
 
 **How it Works**:
-1. Application manifests stored in Git repository
+1. Application manifests stored in `gitops/apps/umami/`
 2. ArgoCD monitors repository for changes
 3. Detects differences between Git state and cluster state
 4. Automatically syncs changes to Kubernetes cluster
@@ -106,10 +147,21 @@ ArgoCD implements GitOps continuous deployment, treating Git as the single sourc
 - Automated deployment on Git commit
 - Declarative application definitions
 - Health status monitoring
-- Easy rollback to previous versions
+- Easy rollback by reverting image SHA commit in Git
 - Audit trail of all changes
-
 ---
+## Database Migrations
+
+Migrations run automatically via a Kubernetes init container before the main app starts:
+
+```yaml
+initContainers:
+  - name: migrate
+    image: ghcr.io/mohamed67471/umami:<sha>
+    command: ["npx", "prisma", "migrate", "deploy", "--schema", "./prisma/schema.prisma"]
+```
+
+This ensures the database schema is always up to date before the application accepts traffic. If migrations are already applied, this is a no-op.
 
 ## Monitoring and Observability
 <img width="940" height="423" alt="image" src="https://github.com/user-attachments/assets/c15f9d70-f9fc-4043-aa8a-eafa11e22ad9" /><img width="940" height="464" alt="image" src="https://github.com/user-attachments/assets/fa595e78-a4a1-4a7e-b629-7d15482383b0" /><img width="940" height="941" alt="image" src="https://github.com/user-attachments/assets/ffdddb05-12fa-4a08-9e43-018fc8217f5d" /><img width="940" height="473" alt="image" src="https://github.com/user-attachments/assets/8a6c7cb6-a4fd-4658-aacb-29db3d76eb7d" /><img width="940" height="362" alt="image" src="https://github.com/user-attachments/assets/07ef8271-ea13-4dfd-9efc-9ab9a1057942" /><img width="940" height="196" alt="image" src="https://github.com/user-attachments/assets/57f947ad-26ac-490a-a9c2-31b72a7f9c33" />
@@ -185,26 +237,45 @@ GitHub Actions uses OpenID Connect for secure AWS authentication without storing
 ---
 
 ## Project Structure
-```
 umami-eks-project/
-├── terraform/                  # Infrastructure as Code
+├── terraform/
 │   ├── modules/
-│   │   ├── vpc/               # VPC, subnets, routing
-│   │   ├── eks/               # EKS cluster configuration
-│   │   ├── rds/               # PostgreSQL database
-│   │   ├── nginx-ingress/     # NGINX controller
-│   │   ├── cert-manager/      # SSL automation
-│   │   ├── external-dns/      # DNS automation
-│   │   ├── argocd/            # GitOps deployment
-│   │   └── monitoring/        # Prometheus + Grafana
+│   │   ├── vpc/
+│   │   ├── eks/
+│   │   ├── rds/
+│   │   ├── iam/
+│   │   ├── security-groups/
+│   │   └── helm/
+│   │       ├── cert-manager/
+│   │       ├── external-dns/
+│   │       ├── nginx-ingress/
+│   │       ├── argocd/
+│   │       ├── kube-prometheus/
+│   │       └── external-secrets/
+│   ├── secrets.tf
+│   ├── kubernetes.tf
 │   └── main.tf
-├── applications/
-│   ├── umami/helm/            # Umami Helm chart
-│   └── argocd/                # ArgoCD application definitions
-├── .github/workflows/
-│   ├── terraform.yml          # Infrastructure pipeline
-│   └── deploy-umami.yml       # Application pipeline
-└── kubernetes/                # Additional manifests
+├── gitops/
+│   ├── apps/
+│   │   └── umami/
+│   │       ├── deployment.yaml
+│   │       ├── service.yaml
+│   │       ├── ingress.yaml
+│   │       ├── secret-store.yaml
+│   │       └── external-secret.yaml
+│   ├── root-app.yaml
+│   └── bootstrap-app.yaml
+├── bootstrap/
+│   ├── namespace.yaml
+│   ├── cert-manager.yaml
+│   ├── cluster-issuer.yaml
+│   └── rds-ca-configmap.yaml
+├── umami/
+│   └── Dockerfile
+└── .github/
+    └── workflows/
+        ├── terraform.yml
+        └── deploy-umami.yml
 ```
 
 ---
@@ -233,25 +304,6 @@ umami-eks-project/
 
 ---
 
-## Cost Estimate
-
-Approximately **$215-230/month**:
-- EKS Control Plane: $72
-- EC2 Worker Nodes (2x t3.medium): $60
-- RDS PostgreSQL : $25
-- Network Load Balancer: $16
-- NAT Gateway: $32
-- Route 53 + Storage: $10-15
-
----
-
-## Key Learnings
-
-- **Automation**: cert-manager and ExternalDNS eliminate manual operational tasks
-- **GitOps**: ArgoCD provides audit trails and simplifies rollbacks through Git
-- **Security**: OIDC authentication removes need for long-lived credentials
-- **High Availability**: Multi-AZ deployment ensures resilience
-- **Monitoring**: Prometheus and Grafana provide visibility into cluster health
 
 ---
 
@@ -259,7 +311,6 @@ Approximately **$215-230/month**:
 
 - Implement Horizontal Pod Autoscaler for dynamic scaling
 - Add centralized logging with EFK stack
-- Migrate secrets to AWS Secrets Manager
 - Implement network policies for enhanced security
 
 
